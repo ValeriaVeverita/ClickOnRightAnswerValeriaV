@@ -113,7 +113,7 @@ end
 -- Function that changes the answers for a new question and places them randomly in one of the positions
 local function DisplayAnswers( )
 
-    local answerPosition = math.random(1,3)
+    local answerPosition = math.random(1,4)
     answerTextObject.text = tostring( answer )
     wrongAnswer1TextObject.text = tostring( wrongAnswer1 )
     wrongAnswer2TextObject.text = tostring( wrongAnswer2 )
@@ -121,24 +121,31 @@ local function DisplayAnswers( )
 
     if (answerPosition == 1) then                
         
-        answerTextObject.x = display.contentWidth*.3        
+        answerTextObject.x = display.contentWidth*.1        
         wrongAnswer1TextObject.x = display.contentWidth*.2
-        wrongAnswer2TextObject.x = display.contentWidth*.1
+        wrongAnswer2TextObject.x = display.contentWidth*.3
         wrongAnswer3TextObject.x = display.contentWidth*.4 
 
 
     elseif (answerPosition == 2) then
        
-        answerTextObject.x = display.contentWidth*.2        
-        wrongAnswer1TextObject.x = display.contentWidth*.4
-        wrongAnswer2TextObject.x = display.contentWidth*.3 
-        wrongAnswer3TextObject.x = display.contentWidth*.1
-    else
+        answerTextObject.x = display.contentWidth*.4       
+        wrongAnswer1TextObject.x = display.contentWidth*.1
+        wrongAnswer2TextObject.x = display.contentWidth*.2
+        wrongAnswer3TextObject.x = display.contentWidth*.3
+
+    elseif (answerPosition == 3 ) then
        
-        answerTextObject.x = display.contentWidth*.1        
+        answerTextObject.x = display.contentWidth*.3        
         wrongAnswer1TextObject.x = display.contentWidth*.4
-        wrongAnswer2TextObject.x = display.contentWidth*.3
+        wrongAnswer2TextObject.x = display.contentWidth*.1
         wrongAnswer3TextObject.x = display.contentWidth*.2
+
+    else
+        answerTextObject.x = display.contentWidth*.2        
+        wrongAnswer1TextObject.x = display.contentWidth*.3
+        wrongAnswer2TextObject.x = display.contentWidth*.4
+        wrongAnswer3TextObject.x = display.contentWidth*.1
     end
 
 end
@@ -146,7 +153,15 @@ end
 -- Function that transitions to Lose Screen
 local function LoseScreenTransition( )        
     composer.gotoScene( "you_lose", {effect = "zoomInOutFade", time = 1000})
+    audio.stop(backgroundChannel)
 end 
+
+--Function that transition to Win Screen
+local function WinScreenTransition( )
+    composer.gotoScene ( "you_win", {effect = "zoomInOutFade", time = 1000})
+    audio.stop(backgroundChannel)
+end
+
 
 -- The function that displays the equation and determines the answer and the wrong answers
 local function DisplayAddEquation()
@@ -178,7 +193,10 @@ local function RestartScene()
 
     -- if they have 0 lives, go to the You Lose screen
     if (lives == 0) then
-        composer.gotoScene("you_lose")
+        LoseScreenTransition()
+
+    elseif( numberCorrect == 2) then
+        WinScreenTransition( )
     else 
 
         DisplayAddEquation()
@@ -195,6 +213,7 @@ local function TouchListenerAnswer(touch)
     if (touch.phase == "ended") and (alreadyClickedAnswer == false) then
 
         alreadyClickedAnswer = true
+        correctChannel = audio.play(correctSound)
 
         -- if the user gets the answer right, display Correct and call RestartSceneRight
         if (answer == tonumber(userAnswer)) then     
@@ -215,6 +234,7 @@ local function TouchListenerWrongAnswer1(touch)
     if (touch.phase == "ended") and (alreadyClickedAnswer == false) then
 
         alreadyClickedAnswer = true
+        wrongChannel = audio.play(incorrectSound)
 
 
         if (answer ~= tonumber(userAnswer)) then
@@ -236,7 +256,7 @@ local function TouchListenerWrongAnswer2(touch)
         if (touch.phase == "ended") and (alreadyClickedAnswer == false) then
 
             alreadyClickedAnswer = true
-
+            wrongChannel = audio.play(incorrectSound)
 
             if (answer ~= tonumber(userAnswer)) then
                 incorrect.isVisible = true
@@ -254,6 +274,7 @@ local function TouchListenerWrongAnswer3(touch)
     local userAnswer = wrongAnswer3TextObject.text
 
     if (touch.phase == "ended") and (alreadyClickedAnswer == false ) then
+       wrongChannel = audio.play(incorrectSound)
 
       alreadyClickedAnswer = true
 
@@ -313,10 +334,13 @@ function scene:create( event )
     bkg.width = display.contentWidth
     bkg.height = display.contentHeight
 
-    --create the sound
+    --create the background sound
     backgroundSound = audio.loadStream("Sounds/level1Music.wav")
-    backgroundChannel = audio.play(backgroundSound)
-
+    
+    -- create correct sound
+    correctSound = audio.loadStream("Sounds/CorrectAnswer.mp3")
+    --create incorrect sound
+    incorrectSound = audio.loadStream("Sounds/WrongBuzzer.mp3")
 
     -- create the text object that will hold the add equation. Make it empty for now.
     addEquationTextObject = display.newText( "", display.contentWidth*1/4, display.contentHeight*2/5, nil, 50 )
@@ -333,11 +357,6 @@ function scene:create( event )
 
     -- create the text object that will hold the number of lives
     livesText = display.newText("", display.contentWidth*4/5, display.contentHeight*8/9, nil, 25) 
-
-    -- create the text object that will say congratulations, set the colour and then hide it
-    congratulationText = display.newText("Good job!", display.contentWidth/2, display.contentHeight*2/5, nil, 50 )
-    congratulationText:setTextColor(57/255, 230/255, 0)
-    congratulationText.isVisible = false
 
     -- create the text object that will say Correct, set the colour and then hide it
     correct = display.newText("Correct", display.contentWidth/2, display.contentHeight*1/3, nil, 50 )
@@ -366,7 +385,6 @@ function scene:create( event )
     sceneGroup:insert( wrongAnswer1TextObject )
     sceneGroup:insert( wrongAnswer2TextObject )
     sceneGroup:insert( wrongAnswer3TextObject )
-    sceneGroup:insert( congratulationText )
     sceneGroup:insert( correct )
     sceneGroup:insert( incorrect )
     sceneGroup:insert( level1Text )
@@ -396,6 +414,9 @@ function scene:show( event )
         -- initialize the number of lives and number correct 
         lives = 2
         numberCorrect = 0
+
+        --play background sound
+        backgroundChannel = audio.play(backgroundSound)
 
         -- listeners to each of the answer text objects
         AddTextObjectListeners()        
